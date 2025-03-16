@@ -1,6 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DragControls } from 'three/examples/jsm/controls/DragControls.js';
 
 const scene = new THREE.Scene();
 const clock = new THREE.Clock();
@@ -25,44 +26,59 @@ camera.position.setY(1);
 
 renderer.render(scene, camera);
 
-const geometry = new THREE.TorusGeometry(10, 3, 16, 100);
-const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-const torus = new THREE.Mesh(geometry, material);
+// const geometry = new THREE.TorusGeometry(10, 3, 16, 100);
+// const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+// const torus = new THREE.Mesh(geometry, material);
 
-scene.add(torus);
+// scene.add(torus);
 scene.environment = null;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.329; // Можно настроить уровень экспозиции
-renderer.direct = 1; 
+renderer.toneMappingExposure = 0.329;
+renderer.direct = 1;
 
 
 
 const loader = new GLTFLoader();
 
-loader.load( '../Blend/Objects/Punch.glb', function ( gltf ) {
+loader.load('../Blend/Objects/Punch.glb', function (gltf) {
   const model = gltf.scene;
   scene.add(model);
 
   if (gltf.animations.length > 0) {
     mixer = new THREE.AnimationMixer(model);
-    const action = mixer.clipAction(gltf.animations[0]); // Берем первую анимацию
+    const action = mixer.clipAction(gltf.animations[0]);
+
+    action.setLoop(THREE.LoopOnce);
+    action.clampWhenFinished = true;
     action.play();
-}
 
-}, undefined, function ( error ) {
+    const controls = new DragControls([model], camera, renderer.domElement);
 
-	console.error( error );
+    controls.addEventListener('dragstart', () => {
+      console.log('Начало перетаскивания');
+      if (mixer) mixer.stopAllAction(); // Останавливаем анимацию при начале перетаскивания
+    });
+  
+    controls.addEventListener('dragend', () => {
+      console.log('Конец перетаскивания');
+      if (mixer) {
+        const action = mixer.clipAction(gltf.animations[0]);
+        action.play(); // Перезапускаем анимацию после перемещения
+      }
+    });
+  }
 
-} );
+}, undefined, function (error) {
+
+  console.error(error);
+
+});
 
 function animate() {
   requestAnimationFrame(animate);
 
-  torus.rotation.x += 0.01;
-  torus.rotation.y += 0.01;
-
-  const delta = clock.getDelta(); // Получаем разницу времени между кадрами
-  if (mixer) mixer.update(delta); // Обновляем анимацию
+  const delta = clock.getDelta();
+  if (mixer) mixer.update(delta);
   renderer.render(scene, camera);
 }
 
