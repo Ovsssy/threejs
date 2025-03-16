@@ -1,11 +1,13 @@
 import './style.css';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DragControls } from 'three/examples/jsm/controls/DragControls.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 const scene = new THREE.Scene();
 const clock = new THREE.Clock();
 let mixer;
+
 // Создаем DirectionalLight
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // 1.0 - интенсивность
 scene.add(directionalLight);
@@ -33,52 +35,62 @@ renderer.render(scene, camera);
 // scene.add(torus);
 scene.environment = null;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.329;
-renderer.direct = 1;
-
-
+renderer.toneMappingExposure = 0.329; // Можно настроить уровень экспозиции
+renderer.direct = 1; 
 
 const loader = new GLTFLoader();
+let model;
+let animatedObject;
 
-loader.load('../Blend/Objects/Punch.glb', function (gltf) {
-  const model = gltf.scene;
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
+
+loader.load( '../Blend/Objects/Punch.glb', function ( gltf ) {
+  model = gltf.scene;
   scene.add(model);
 
+
+  
   if (gltf.animations.length > 0) {
     mixer = new THREE.AnimationMixer(model);
-    const action = mixer.clipAction(gltf.animations[0]);
-
+    const action = mixer.clipAction(gltf.animations[0]); // Берем первую анимацию
     action.setLoop(THREE.LoopOnce);
     action.clampWhenFinished = true;
     action.play();
-
-    const controls = new DragControls([model], camera, renderer.domElement);
-
-    controls.addEventListener('dragstart', () => {
-      console.log('Начало перетаскивания');
-      if (mixer) mixer.stopAllAction(); // Останавливаем анимацию при начале перетаскивания
-    });
-  
-    controls.addEventListener('dragend', () => {
-      console.log('Конец перетаскивания');
-      if (mixer) {
-        const action = mixer.clipAction(gltf.animations[0]);
-        action.play(); // Перезапускаем анимацию после перемещения
-      }
-    });
   }
 
 }, undefined, function (error) {
 
   console.error(error);
 
+} );
+
+const transformControls = new TransformControls(camera, renderer.domElement);
+transformControls.attach(torus);
+
+console.log("transformControls.object:", transformControls.object);
+
+transformControls.addEventListener('dragging-changed', (event) => {
+  console.log("dragging-changed event fired!", event.value); 
+  orbitControls.enabled = !event.value;
+  console.log('OrbitControls:', orbitControls.enabled); // Проверяем в консоли
+});
+
+// Позволяем переключать режимы (перемещение, вращение, масштаб)
+window.addEventListener('keydown', (event) => {
+    if (event.key === 't') transformControls.setMode('translate'); // Перемещение
+    if (event.key === 'r') transformControls.setMode('rotate');    // Вращение
+    if (event.key === 's') transformControls.setMode('scale');     // Масштаб
 });
 
 function animate() {
   requestAnimationFrame(animate);
 
-  const delta = clock.getDelta();
-  if (mixer) mixer.update(delta);
+  orbitControls.update();
+
+  const delta = clock.getDelta(); // Получаем разницу времени между кадрами
+  if (mixer) mixer.update(delta); // Обновляем анимацию
+
   renderer.render(scene, camera);
 }
 
