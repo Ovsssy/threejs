@@ -66,15 +66,17 @@ loader.load( '../Blend/Objects/Punch.glb', function ( gltf ) {
 } );
 
 const transformControls = new TransformControls(camera, renderer.domElement);
-transformControls.attach(torus);
-
-console.log("transformControls.object:", transformControls.object);
 
 transformControls.addEventListener('dragging-changed', (event) => {
   console.log("dragging-changed event fired!", event.value); 
   orbitControls.enabled = !event.value;
   console.log('OrbitControls:', orbitControls.enabled); // Проверяем в консоли
 });
+
+transformControls.attach(torus);
+scene.add(transformControls);
+
+console.log("transformControls.object:", transformControls.object);
 
 // Позволяем переключать режимы (перемещение, вращение, масштаб)
 window.addEventListener('keydown', (event) => {
