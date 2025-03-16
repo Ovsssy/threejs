@@ -1,97 +1,77 @@
 import './style.css';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
+// Инициализация сцены
 const scene = new THREE.Scene();
-const clock = new THREE.Clock();
-let mixer;
-
-// Создаем DirectionalLight
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // 1.0 - интенсивность
-scene.add(directionalLight);
-
-// Изменяем интенсивность
-directionalLight.intensity = 2.5; // Увеличим в 2 раза
-
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+document.body.appendChild(renderer.domElement);
 
-const renderer = new THREE.WebGLRenderer({
-  canvas: document.querySelector('#bg'),
-});
-
-renderer.setPixelRatio(window.devicePixelRatio);
+// Настроим размер рендерера
 renderer.setSize(window.innerWidth, window.innerHeight);
-camera.position.setZ(30);
-camera.position.setY(1);
 
-renderer.render(scene, camera);
+// Массив для хранения кубиков
+const cubes = [];
+const cubeCount = 30; // Количество кубиков (10 на каждую линию)
 
-// const geometry = new THREE.TorusGeometry(10, 3, 16, 100);
-// const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-// const torus = new THREE.Mesh(geometry, material);
+// Контур для кубиков
+const outlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
 
-// scene.add(torus);
-scene.environment = null;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.329; // Можно настроить уровень экспозиции
-renderer.direct = 1; 
+// Создание кубиков и добавление их в сцену на трех линиях
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
-const loader = new GLTFLoader();
-let model;
-let animatedObject;
+for (let i = 0; i < cubeCount; i++) {
+  const cube = new THREE.Mesh(geometry, material);
 
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.enableDamping = true;
+  // Располагаем кубики по 3 линиям (по оси X)
+  const row = Math.floor(i / 10); // Индекс строки
+  const column = i % 10; // Индекс столбца
 
-loader.load( '../Blend/Objects/Punch.glb', function ( gltf ) {
-  model = gltf.scene;
-  scene.add(model);
+  cube.position.x = column * 2 - 10; // Расстояние между кубиками по оси X
+  cube.position.y = row * 1;   // Расстояние между строками по оси Y
+  cube.position.z = 0; // Все кубики на одной плоскости
 
+  cubes.push(cube);
+  scene.add(cube);
 
-  
-  if (gltf.animations.length > 0) {
-    mixer = new THREE.AnimationMixer(model);
-    const action = mixer.clipAction(gltf.animations[0]); // Берем первую анимацию
-    action.setLoop(THREE.LoopOnce);
-    action.clampWhenFinished = true;
-    action.play();
-  }
+  // Создаем контур для кубика
+  const edges = new THREE.EdgesGeometry(geometry);
+  const outline = new THREE.LineSegments(edges, outlineMaterial);
+  cube.add(outline); // Добавляем контур к кубику
+}
 
-}, undefined, function (error) {
+// Позиция камеры
+camera.position.x = 10
+camera.position.z = 20;
 
-  console.error(error);
-
-} );
-
-const transformControls = new TransformControls(camera, renderer.domElement);
-transformControls.attach(torus);
-
-console.log("transformControls.object:", transformControls.object);
-
-transformControls.addEventListener('dragging-changed', (event) => {
-  console.log("dragging-changed event fired!", event.value); 
-  orbitControls.enabled = !event.value;
-  console.log('OrbitControls:', orbitControls.enabled); // Проверяем в консоли
+// Обработчик движения мыши
+let mouseX = 0;
+let mouseY = 0;
+document.addEventListener('mousemove', (event) => {
+  mouseX = (event.clientX / window.innerWidth) * 2 - 1; // Нормализуем координаты мыши
+  mouseY = -(event.clientY / window.innerHeight) * 2 + 1; // Нормализуем координаты мыши
 });
 
-// Позволяем переключать режимы (перемещение, вращение, масштаб)
-window.addEventListener('keydown', (event) => {
-    if (event.key === 't') transformControls.setMode('translate'); // Перемещение
-    if (event.key === 'r') transformControls.setMode('rotate');    // Вращение
-    if (event.key === 's') transformControls.setMode('scale');     // Масштаб
-});
-
+// Анимация
 function animate() {
   requestAnimationFrame(animate);
 
-  orbitControls.update();
+  // Для каждого кубика
+  cubes.forEach(cube => {
+    // Рассчитываем вектор направления на мышь
+    const vector = new THREE.Vector3(mouseX * 10, mouseY * 10, 0); // Создаем вектор направления
 
-  const delta = clock.getDelta(); // Получаем разницу времени между кадрами
-  if (mixer) mixer.update(delta); // Обновляем анимацию
+    cube.lookAt(vector); // Поворачиваем кубик так, чтобы его передняя грань смотрела на мышь
+
+    // Оправляем вращение, чтобы было плавным и не происходило вращение по другим осям
+    cube.rotation.x = 0;
+    cube.rotation.z = 0;
+  });
 
   renderer.render(scene, camera);
 }
 
 animate();
+
+
