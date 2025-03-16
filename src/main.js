@@ -28,11 +28,11 @@ camera.position.setY(1);
 
 renderer.render(scene, camera);
 
-const geometry = new THREE.TorusGeometry(10, 3, 16, 100);
-const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-const torus = new THREE.Mesh(geometry, material);
+// const geometry = new THREE.TorusGeometry(10, 3, 16, 100);
+// const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+// const torus = new THREE.Mesh(geometry, material);
 
-scene.add(torus);
+// scene.add(torus);
 scene.environment = null;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.329; // Можно настроить уровень экспозиции
@@ -59,9 +59,9 @@ loader.load( '../Blend/Objects/Punch.glb', function ( gltf ) {
     action.play();
   }
 
-}, undefined, function ( error ) {
+}, undefined, function (error) {
 
-	console.error( error );
+  console.error(error);
 
 } );
 
